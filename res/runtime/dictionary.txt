@@ -19103,3 +19103,17 @@ tabs_quick_list.empty_message:TR:Sadece bir sekme görüntüleniyor
 #Pack.label:AR:أرشفة الملفات
 #Pack.label:NB:Pakk filer
 #Pack.label:TR:Dosyaları arşivle
+
+#PH
+#############
+# Find Menu #
+#############
+find_menu:EN:Find
+FindFile.label:EN:Find File
+find_file_dialog.run:EN:Run
+find_file_dialog.stop:EN:Stop
+find_file_dialog.pattern_input:EN:File name pattern (wildcards: *?)
+find_file_dialog.found_files:EN:Found Files
+find_file_dialog.case_insensitive:EN:Case insensitive 
+find_file_dialog.use_regexp:EN:Use regexp 
+find_file_dialog.modified_ago:EN:Modified ago [minutes]

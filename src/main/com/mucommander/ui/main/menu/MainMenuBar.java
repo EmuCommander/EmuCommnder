@@ -72,6 +72,7 @@ import com.mucommander.ui.action.impl.EditBookmarksAction;
 import com.mucommander.ui.action.impl.EditCredentialsAction;
 import com.mucommander.ui.action.impl.EmailAction;
 import com.mucommander.ui.action.impl.ExploreBookmarksAction;
+import com.mucommander.ui.action.impl.FindFileAction;
 import com.mucommander.ui.action.impl.GoBackAction;
 import com.mucommander.ui.action.impl.GoForwardAction;
 import com.mucommander.ui.action.impl.GoToDocumentationAction;
@@ -326,7 +327,14 @@ public class MainMenuBar extends JMenuBar implements ActionListener, MenuListene
         MenuToolkit.addMenuItem(viewMenu, ActionManager.getActionInstance(CustomizeCommandBarAction.Descriptor.ACTION_ID, mainFrame), menuItemMnemonicHelper);
 
         add(viewMenu);
-
+        
+        //PH Find menu entry in main menu bar
+        //Find menu
+        menuItemMnemonicHelper.clear();
+        JMenu findMenu = MenuToolkit.addMenu(Translator.get("find_menu"), menuMnemonicHelper, this);
+        MenuToolkit.addMenuItem(findMenu, ActionManager.getActionInstance(FindFileAction.Descriptor.ACTION_ID, mainFrame), menuItemMnemonicHelper);
+        add(findMenu);
+        
         // Go menu
         menuItemMnemonicHelper.clear();
         goMenu = MenuToolkit.addMenu(Translator.get("go_menu"), menuMnemonicHelper, this);

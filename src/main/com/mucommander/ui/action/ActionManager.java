@@ -92,6 +92,7 @@ public class ActionManager {
     	registerAction(new CopyFileNamesAction.Descriptor(),                new CopyFileNamesAction.Factory());
     	registerAction(new CopyFilePathsAction.Descriptor(),                new CopyFilePathsAction.Factory());
     	registerAction(new CopyFilesToClipboardAction.Descriptor(),         new CopyFilesToClipboardAction.Factory());
+    	registerAction(new FindFileAction.Descriptor(),                     new FindFileAction.Factory());
     	registerAction(new FocusPreviousAction.Descriptor(),                new FocusPreviousAction.Factory());
     	registerAction(new FocusNextAction.Descriptor(),                    new FocusNextAction.Factory());
     	registerAction(new DeleteAction.Descriptor(),         			    new DeleteAction.Factory());

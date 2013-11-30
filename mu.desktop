@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=MuX
+Exec=ant -f /home/czesio/workspace/mu/trunk/build.xml
+Icon=/home/czesio/workspace/mu/trunk/res/runtime/images/mucommander/icon48_24.png
+Terminal=true
+Type=Application
+
