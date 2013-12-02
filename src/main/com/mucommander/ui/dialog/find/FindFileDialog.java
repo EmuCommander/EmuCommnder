@@ -44,6 +44,7 @@ import javax.swing.event.ChangeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mucommander.commons.runtime.OsFamily;
 import com.mucommander.process.AbstractProcess;
 import com.mucommander.process.ProcessListener;
 import com.mucommander.shell.Shell;
@@ -153,7 +154,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     	panel.add(modifiedAgo = new JSpinner( new SpinnerNumberModel(5, 1, Integer.MAX_VALUE, 1) ));
     	modifiedAgo.setEnabled(false);
     	
-        JComponent field = ((JSpinner.DefaultEditor) modifiedAgo.getEditor());
+        JComponent field = (modifiedAgo.getEditor());
         Dimension prefSize = field.getPreferredSize();
         prefSize = new Dimension(50, prefSize.height);
         field.setPreferredSize(prefSize);    	
@@ -243,7 +244,8 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * Notifies the FindFileDialog that the current process has died.
      * @param retValue process' return code (not used).
      */	
-    public void processDied(int retValue) {
+    @Override
+	public void processDied(int retValue) {
         LOGGER.debug("process exit, return value= "+retValue);
         currentProcess = null;
         switchToRunState();
@@ -252,13 +254,15 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     /**
      * Ignored.
      */
-    public void processOutput(byte[] buffer, int offset, int length) {}
+    @Override
+	public void processOutput(byte[] buffer, int offset, int length) {}
 
     /**
      * Notifies the dialog that the process has output some text.
      * @param output contains the process' output.
      */
-    public void processOutput(String output) {addToTextArea(output);}
+    @Override
+	public void processOutput(String output) {addToTextArea(output);}
 
 
     // - ActionListener code -------------------------------------------------------------
@@ -267,7 +271,8 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * Notifies the dialog that an action has been performed.
      * @param e describes the action that occured.
      */
-    public void actionPerformed(ActionEvent e) {
+    @Override
+	public void actionPerformed(ActionEvent e) {
         Object source = e.getSource();
         // 'Run / stop' button has been pressed.
         if(source == runStopButton) {
@@ -333,30 +338,54 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @return shell command that prints all files that match search criteria
      */
     private String prepareShellCommand(String pattern){
-    	//-iname pattern
-		//  Like -name, but the match is case insensitive.  For example, the
-		//  patterns	'fo*'  and  'F??'  match  the file names 'Foo', 'FOO',
-		//  'foo', 'fOo', etc.   In these patterns, unlike  filename	expan-
-		//  sion  by	the shell, an initial '.' can be matched by '*'.  That
-		//  is, find -name *bar will match the file '.foobar'.   Please note
-		//  that  you should quote patterns as a matter of course, otherwise
-		//  the shell will expand any wildcard characters in them.
-        //
-		//-regex pattern
-		//  File  name  matches regular expression pattern.  This is a match
-		//  on the whole path, not a search.	For example, to match  a  file
-		//  named './fubar3', you can use the regular expression '.*bar.' or
-		//  '.*b.*3', but not 'f.*r3'.  The regular  expressions  understood
-		//  by  find	are by default Emacs Regular Expressions, but this can
-		//  be changed with the -regextype option.    
-        //
-		//-iregex pattern
-		//	Like -regex, but the match is case insensitive.
-		//
-
-		//-mmin n
-		//	File's data was last modified n minutes ago.
-    	
+    	pattern = pattern.trim();
+    	switch( OsFamily.getCurrent() ){
+    	case WINDOWS:
+    		return prepareWindowsShellCommand(pattern);
+    	default:
+    		return prepareBashShellCommand(pattern);
+    	}
+    }
+    
+	/**
+     * Creates Windows shell command that prints all files that match search criteria.
+     * 
+     * Recursive search with filename pattern:
+     *   dir /b/s "<file name pattern>"
+     *   
+     * Recursive search with case-insensitive Regexp match on filename:
+     *   dir /b/s | findstr /I /R <file name regexp>
+     *   Note: findstr regexp is limited to: . * ^ $ [class] [^class] [x-y]
+     * 
+     * Filename and content search command:
+     * 	<file name search command> | findstr /F:/ /M /C:"<data pattern>"
+     * 
+     * Filename and case-insensitive content search command:
+     * 	<file name search command> | findstr /F:/ /M /I /C:"<data pattern>"
+     * 
+     * Filename and case-insensitive content regexp search command:
+     * 	<file name search command> | findstr /F:/ /M /I /R "<data regexp>"
+     *  Note: findstr regexp is limited to: . * ^ $ [class] [^class] [x-y]
+     *   
+     * @param pattern file name pattern
+     * @return shell command that prints all files that match search criteria
+     */
+    private String prepareWindowsShellCommand(String pattern){
+    	if( isRegexp.isSelected() ){
+    		//PH TODO
+    		throw new RuntimeException("not implemented");
+    	} else {
+    		return "dir /b/s " + prepareShellText(pattern);
+    	}
+    }
+    
+    //PH extract command examples to documentation
+    /**
+     * Creates Bash shell command that prints all files that match search criteria.
+     * @param pattern file name pattern
+     * @return shell command that prints all files that match search criteria
+     */
+    private String prepareBashShellCommand(String pattern){
     	StringBuilder cmd = new StringBuilder("find . -");
     	if( isModifiedAgo.isSelected() ){
     		cmd.append("mmin -").append(modifiedAgo.getValue()).append(" -");
