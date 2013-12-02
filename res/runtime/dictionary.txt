@@ -19112,8 +19112,11 @@ find_menu:EN:Find
 FindFile.label:EN:Find File
 find_file_dialog.run:EN:Run
 find_file_dialog.stop:EN:Stop
-find_file_dialog.pattern_input:EN:File name pattern (wildcards: *?)
+find_file_dialog.pattern_input:EN:File name pattern
+find_file_dialog.pattern_input_tooltip_win:EN:Wildcards are: *?. Regexp format as in "find" command.
+find_file_dialog.pattern_input_tooltip_linux:EN:Wildcards are: *?. Regexp format as in "findstr" command.
 find_file_dialog.found_files:EN:Found Files
 find_file_dialog.case_insensitive:EN:Case insensitive 
 find_file_dialog.use_regexp:EN:Use regexp 
-find_file_dialog.modified_ago:EN:Modified ago [minutes]
+find_file_dialog.modified_ago:EN:Changed within
+find_file_dialog.modified_ago_unit:EN:[minutes]

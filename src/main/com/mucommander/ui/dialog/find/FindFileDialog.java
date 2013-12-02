@@ -18,6 +18,8 @@
 
 package com.mucommander.ui.dialog.find;
 
+import static com.mucommander.commons.runtime.OsFamily.WINDOWS;
+
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
@@ -30,7 +32,6 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -123,12 +124,18 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     }
     
     private Component createPatternInput(){
-    	JPanel panel = new XBoxPanel();
+    	XBoxPanel panel = new XBoxPanel();
     	JLabel label = new JLabel(Translator.get("find_file_dialog.pattern_input"));
         panel.add(label);
+        panel.addSpace(5);
     	panel.add(patternText = new JTextField());
     	label.setLabelFor(patternText);
         patternText.setEnabled(true);
+        patternText.setToolTipText(
+        	Translator.get(
+        		WINDOWS.equals(OsFamily.getCurrent())  
+	        	? "find_file_dialog.pattern_input_tooltip_win" 
+	        	: "find_file_dialog.pattern_input_tooltip_linux"));
         return panel; 
     }
     
@@ -137,11 +144,11 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     	
 		panel.add(isCaseInsensitive = new JCheckBox(Translator.get("find_file_dialog.case_insensitive"), true));
 		
-		panel.addSpace(10);
+		panel.addSpace(5);
 		
 		panel.add(isRegexp = new JCheckBox(Translator.get("find_file_dialog.use_regexp"), false));
 
-		panel.addSpace(10);
+		panel.addSpace(5);
 		
     	panel.add(isModifiedAgo = new JCheckBox(Translator.get("find_file_dialog.modified_ago"), false));
     	isModifiedAgo.addChangeListener(new ChangeListener() {
@@ -150,14 +157,11 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     			modifiedAgo.setEnabled(isModifiedAgo.isSelected());
     		}
     	});
-    	panel.addSpace(5);
+    	panel.addSpace(3);
     	panel.add(modifiedAgo = new JSpinner( new SpinnerNumberModel(5, 1, Integer.MAX_VALUE, 1) ));
     	modifiedAgo.setEnabled(false);
-    	
-        JComponent field = (modifiedAgo.getEditor());
-        Dimension prefSize = field.getPreferredSize();
-        prefSize = new Dimension(50, prefSize.height);
-        field.setPreferredSize(prefSize);    	
+    	panel.addSpace(3);
+        panel.add(new JLabel(Translator.get("find_file_dialog.modified_ago_unit")));
     	
 		return panel;
 	}
