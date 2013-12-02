@@ -4,3 +4,6 @@ res/
 tmp/
 *.class
 
+/bin
+/.classpath
+/.project
