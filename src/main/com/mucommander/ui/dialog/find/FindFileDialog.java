@@ -30,13 +30,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
@@ -58,8 +59,6 @@ import com.mucommander.ui.icon.SpinningDial;
 import com.mucommander.ui.layout.XBoxPanel;
 import com.mucommander.ui.layout.YBoxPanel;
 import com.mucommander.ui.main.MainFrame;
-import com.mucommander.ui.theme.Theme;
-import com.mucommander.ui.theme.ThemeManager;
 
 /**
  * Dialog used to search for files.
@@ -91,8 +90,13 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     private JButton       runStopButton;
     /** Cancel button. */
     private JButton       cancelButton;
-    /** Text area used to display the output. */
-    private JTextArea     outputTextArea;
+    /** List with found files. */
+    private JList foundFilesList;
+    /** Found files list data model. */
+    private DefaultListModel foundFilesListModel;
+    /** Last fragment of process output - not followed by new list so it might be beginning of next line. */ 
+    private String foundFilesLastFragment = null;
+    
     /** Used to let the user known that the command is still running. */
     private SpinningDial  dial;
 
@@ -113,12 +117,6 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 
         mainPanel.add(createPatternInput());
         mainPanel.add(createOptionCheckBoxes());
-        mainPanel.addSpace(10);
-
-        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        labelPanel.add(new JLabel(Translator.get("find_file_dialog.found_files")));
-        labelPanel.add(new JLabel(dial = new SpinningDial()));
-        mainPanel.add(labelPanel);
 
         return mainPanel;
     }
@@ -140,16 +138,12 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     }
     
     private Component createOptionCheckBoxes(){
-    	XBoxPanel panel = new XBoxPanel();
-    	
+    	JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
 		panel.add(isCaseInsensitive = new JCheckBox(Translator.get("find_file_dialog.case_insensitive"), true));
-		
-		panel.addSpace(5);
 		
 		panel.add(isRegexp = new JCheckBox(Translator.get("find_file_dialog.use_regexp"), false));
 
-		panel.addSpace(5);
-		
     	panel.add(isModifiedAgo = new JCheckBox(Translator.get("find_file_dialog.modified_ago"), false));
     	isModifiedAgo.addChangeListener(new ChangeListener() {
     		@Override
@@ -157,10 +151,9 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     			modifiedAgo.setEnabled(isModifiedAgo.isSelected());
     		}
     	});
-    	panel.addSpace(3);
     	panel.add(modifiedAgo = new JSpinner( new SpinnerNumberModel(5, 1, Integer.MAX_VALUE, 1) ));
     	modifiedAgo.setEnabled(false);
-    	panel.addSpace(3);
+    	modifiedAgo.setPreferredSize(new Dimension(50, 20));
         panel.add(new JLabel(Translator.get("find_file_dialog.modified_ago_unit")));
     	
 		return panel;
@@ -170,24 +163,27 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * Creates the list of found files area.
      * @return a scroll pane containing the list of found files.
      */
-    private JScrollPane createOutputArea() {
-        // Creates and initialises the output area.
-        outputTextArea = new JTextArea();
-        outputTextArea.setLineWrap(true);
-        outputTextArea.setCaretPosition(0);
-        outputTextArea.setRows(10);
-        outputTextArea.setEditable(false);
+    private JPanel createOutputArea() {
+        YBoxPanel panel = new YBoxPanel();
+    	panel.add(new JLabel("czesio"));
 
-        // Applies the current theme to the output area.
-        outputTextArea.setForeground(ThemeManager.getCurrentColor(Theme.SHELL_FOREGROUND_COLOR));
-        outputTextArea.setCaretColor(ThemeManager.getCurrentColor(Theme.SHELL_FOREGROUND_COLOR));
-        outputTextArea.setBackground(ThemeManager.getCurrentColor(Theme.SHELL_BACKGROUND_COLOR));
-        outputTextArea.setSelectedTextColor(ThemeManager.getCurrentColor(Theme.SHELL_SELECTED_FOREGROUND_COLOR));
-        outputTextArea.setSelectionColor(ThemeManager.getCurrentColor(Theme.SHELL_SELECTED_BACKGROUND_COLOR));
-        outputTextArea.setFont(ThemeManager.getCurrentFont(Theme.SHELL_FONT));
+        //label and progress spin
+        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        labelPanel.add(new JLabel(Translator.get("find_file_dialog.found_files")));
+        labelPanel.add(new JLabel(dial = new SpinningDial()));
+        panel.add(labelPanel);
+    	
+        foundFilesListModel = new DefaultListModel();
+        foundFilesList = new JList(foundFilesListModel);
+        foundFilesList.setLayoutOrientation(JList.VERTICAL);
+        foundFilesList.setVisibleRowCount(-1);
 
         // Creates a scroll pane on the output area.
-        return new JScrollPane(outputTextArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane listScroller = new JScrollPane(foundFilesList, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        listScroller.setPreferredSize(new Dimension(440, 440));
+        panel.add(listScroller);
+        
+        return panel;
     }
    /**
      * Creates a panel containing the dialog's buttons.
@@ -266,7 +262,15 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @param output contains the process' output.
      */
     @Override
-	public void processOutput(String output) {addToTextArea(output);}
+	public void processOutput(final String output) {
+    	//don't touch UI from different thread - use event thread instead 
+    	javax.swing.SwingUtilities.invokeLater( new Runnable() {
+    		@Override
+			public void run() {
+    			addToTextArea(output);
+    		}
+    	 });
+    }
 
 
     // - ActionListener code -------------------------------------------------------------
@@ -318,9 +322,6 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
         // Make command field active again
         this.patternText.setEnabled(true);
         patternText.requestFocus();
-
-        // Disables the caret in the process output area.
-        outputTextArea.getCaret().setVisible(false);
 
         // Repaint this dialog
         repaint();
@@ -419,10 +420,11 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
             this.runStopButton.setText(Translator.get("find_file_dialog.stop"));
 
             // Resets the output list.
-            outputTextArea.setText("");
-            outputTextArea.setCaretPosition(0);
-            outputTextArea.getCaret().setVisible(true);
-            outputTextArea.requestFocus();
+LOGGER.info("CLEAR " + Thread.currentThread().toString());
+            foundFilesListModel.clear();
+            foundFilesLastFragment = null;
+            foundFilesList.requestFocus();
+            
 
             // No new pattern can be entered while a process is running.
             patternText.setEnabled(false);
@@ -445,9 +447,19 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @param s string to append to the output area.
      */
     private void addToTextArea(String s) {
-        outputTextArea.append(s);
-        outputTextArea.setCaretPosition(outputTextArea.getText().length());
-        outputTextArea.getCaret().setVisible(true);
-        outputTextArea.repaint();
+    	if( foundFilesLastFragment != null ){
+    		s = foundFilesLastFragment + s;
+    	}
+    	int prev=0, pos=-1;
+    	while((pos = s.indexOf("\n", prev)) != -1 ){
+    		foundFilesListModel.addElement(s.substring(prev, pos));
+    		prev = pos+1;
+    	}
+    	if( prev < s.length() ){
+    		foundFilesLastFragment = s.substring(prev);
+    	} else {
+    		foundFilesLastFragment = null;
+    	}
+        foundFilesList.repaint();
     }
 }
