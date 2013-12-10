@@ -30,15 +30,18 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.AbstractAction;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -46,6 +49,9 @@ import javax.swing.event.ChangeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mucommander.commons.file.AbstractFile;
+import com.mucommander.commons.file.FileURL;
+import com.mucommander.commons.file.impl.local.LocalFile;
 import com.mucommander.commons.runtime.OsFamily;
 import com.mucommander.process.AbstractProcess;
 import com.mucommander.process.ProcessListener;
@@ -165,7 +171,6 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      */
     private JPanel createOutputArea() {
         YBoxPanel panel = new YBoxPanel();
-    	panel.add(new JLabel("czesio"));
 
         //label and progress spin
         JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -177,10 +182,29 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
         foundFilesList = new JList(foundFilesListModel);
         foundFilesList.setLayoutOrientation(JList.VERTICAL);
         foundFilesList.setVisibleRowCount(-1);
+        
+        //foundFilesList.setComponentPopupMenu(popup)
+        foundFilesList.getInputMap().put(KeyStroke.getKeyStroke("SPACE"), "space pressed");
+        foundFilesList.getActionMap().put("space pressed", new AbstractAction(){
+        	@Override
+        	public void actionPerformed(ActionEvent e) {
+        		String selectedFile = (String)foundFilesList.getSelectedValue();
+        		if( selectedFile.startsWith(".")){
+        			selectedFile = mainFrame.getActivePanel().getCurrentFolder().getAbsolutePath()
+        					+ selectedFile.substring(2);
+        		}
+//        		AbstractFile af = new LocalFile(FileURL.getFileURL(selectedFile));
+        		JOptionPane.showMessageDialog(null, "selected file is: " + selectedFile);
+//        		JOptionPane.showMessageDialog(null, "file is: " + mainFrame.getActivePanel().getCurrentFolder().getClass());
+//        		mainFrame.getActivePanel().setCurrentFolder(af.getParent(), null, af, false);
+        		FindFileDialog.this.close();
+        	}
+        });
 
         // Creates a scroll pane on the output area.
         JScrollPane listScroller = new JScrollPane(foundFilesList, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        listScroller.setPreferredSize(new Dimension(440, 440));
+        //PH how to setup result list so it fills in whole available space?
+        //listScroller.setPreferredSize(new Dimension(3000, 3000));
         panel.add(listScroller);
         
         return panel;
@@ -247,8 +271,14 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     @Override
 	public void processDied(int retValue) {
         LOGGER.debug("process exit, return value= "+retValue);
-        currentProcess = null;
-        switchToRunState();
+    	//don't touch UI from different thread - use event thread instead 
+    	javax.swing.SwingUtilities.invokeLater( new Runnable() {
+    		@Override
+			public void run() {
+    			currentProcess = null;
+    			switchToRunState();
+    		}
+    	 });
     }	
 
     /**
@@ -299,13 +329,15 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 
         // Cancel button disposes the dialog and kills the process
         else if(source == cancelButton) {
-            if(currentProcess != null)
-                currentProcess.destroy();
-            dispose();
+            close();
         }
     }
 
-
+    private void close(){
+    	if(currentProcess != null)
+            currentProcess.destroy();
+        dispose();
+    }
 
     // - Misc. ---------------------------------------------------------------------------
     // -----------------------------------------------------------------------------------
