@@ -27,6 +27,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -36,7 +38,6 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
@@ -50,8 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mucommander.commons.file.AbstractFile;
-import com.mucommander.commons.file.FileURL;
-import com.mucommander.commons.file.impl.local.LocalFile;
+import com.mucommander.commons.file.FileFactory;
 import com.mucommander.commons.runtime.OsFamily;
 import com.mucommander.process.AbstractProcess;
 import com.mucommander.process.ProcessListener;
@@ -119,12 +119,18 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     // - Initialisation ------------------------------------------------------------------
     // -----------------------------------------------------------------------------------
     private YBoxPanel createInputArea() {
-        YBoxPanel mainPanel = new YBoxPanel();
+        YBoxPanel panel = new YBoxPanel();
+        
+        panel.add(createPatternInput());
+        panel.add(createOptionCheckBoxes());
+        
+        //label and progress spin
+        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        labelPanel.add(new JLabel(Translator.get("find_file_dialog.found_files")));
+        labelPanel.add(new JLabel(dial = new SpinningDial()));
+        panel.add(labelPanel);
 
-        mainPanel.add(createPatternInput());
-        mainPanel.add(createOptionCheckBoxes());
-
-        return mainPanel;
+        return panel;
     }
     
     private Component createPatternInput(){
@@ -171,43 +177,55 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      */
     private JPanel createOutputArea() {
         YBoxPanel panel = new YBoxPanel();
-
-        //label and progress spin
-        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        labelPanel.add(new JLabel(Translator.get("find_file_dialog.found_files")));
-        labelPanel.add(new JLabel(dial = new SpinningDial()));
-        panel.add(labelPanel);
     	
         foundFilesListModel = new DefaultListModel();
         foundFilesList = new JList(foundFilesListModel);
         foundFilesList.setLayoutOrientation(JList.VERTICAL);
         foundFilesList.setVisibleRowCount(-1);
-        
-        //foundFilesList.setComponentPopupMenu(popup)
+        foundFilesList.setFocusable(true);
+
+        foundFilesList.addMouseListener(new MouseAdapter(){
+        	@Override
+        	public void mouseClicked(MouseEvent e) {
+        		if( e.getClickCount() == 2 ){
+        			navigateToSelectedFile();
+        		}
+        	}
+        });
         foundFilesList.getInputMap().put(KeyStroke.getKeyStroke("SPACE"), "space pressed");
         foundFilesList.getActionMap().put("space pressed", new AbstractAction(){
         	@Override
         	public void actionPerformed(ActionEvent e) {
-        		String selectedFile = (String)foundFilesList.getSelectedValue();
-        		if( selectedFile.startsWith(".")){
-        			selectedFile = mainFrame.getActivePanel().getCurrentFolder().getAbsolutePath()
-        					+ selectedFile.substring(2);
-        		}
-//        		AbstractFile af = new LocalFile(FileURL.getFileURL(selectedFile));
-        		JOptionPane.showMessageDialog(null, "selected file is: " + selectedFile);
-//        		JOptionPane.showMessageDialog(null, "file is: " + mainFrame.getActivePanel().getCurrentFolder().getClass());
-//        		mainFrame.getActivePanel().setCurrentFolder(af.getParent(), null, af, false);
-        		FindFileDialog.this.close();
+        		navigateToSelectedFile();
         	}
         });
 
         // Creates a scroll pane on the output area.
         JScrollPane listScroller = new JScrollPane(foundFilesList, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        //PH how to setup result list so it fills in whole available space?
-        //listScroller.setPreferredSize(new Dimension(3000, 3000));
         panel.add(listScroller);
         
         return panel;
+    }
+    
+    private void navigateToSelectedFile(){
+    	String selectedFile = (String)foundFilesList.getSelectedValue();
+    	if( selectedFile == null ){
+    		return;
+    	}
+		if( selectedFile.startsWith(".")){
+			selectedFile = mainFrame.getActivePanel().getCurrentFolder().getAbsolutePath()
+					+ selectedFile.substring(2);
+		}
+		
+		AbstractFile selectedAF = FileFactory.getFile(selectedFile);
+		AbstractFile selectedAFFolder = selectedAF.getParent();
+		if( selectedAF.isDirectory() ){
+			selectedAFFolder = selectedAF;
+			selectedAF = null;
+		}
+		mainFrame.getActivePanel().tryChangeCurrentFolder(selectedAFFolder, selectedAF, true);
+		FindFileDialog.this.close();
+
     }
    /**
      * Creates a panel containing the dialog's buttons.
