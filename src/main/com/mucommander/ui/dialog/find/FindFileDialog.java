@@ -84,6 +84,8 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     private MainFrame mainFrame;
     /** Input field for filename pattern. */
     private JTextField patternText;
+    /** Input field for content text. */
+    private JTextField contentText;
     /** Case-insensitive check box. */
     private JCheckBox isCaseInsensitive;
     /** Regexp check box. */
@@ -102,6 +104,8 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     private DefaultListModel foundFilesListModel;
     /** Last fragment of process output - not followed by new list so it might be beginning of next line. */ 
     private String foundFilesLastFragment = null;
+    /** When first result is displayed in list switch focus to this list - but only once for each search so user can change it. */
+    private boolean foundFilesLastFocusSet = false;
     
     /** Used to let the user known that the command is still running. */
     private SpinningDial  dial;
@@ -123,6 +127,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
         
         panel.add(createPatternInput());
         panel.add(createOptionCheckBoxes());
+        panel.add(createContentInput());
         
         //label and progress spin
         JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -148,6 +153,17 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 	        	: "find_file_dialog.pattern_input_tooltip_linux"));
         return panel; 
     }
+    
+    private Component createContentInput(){
+    	XBoxPanel panel = new XBoxPanel();
+    	JLabel label = new JLabel(Translator.get("find_file_dialog.content_input"));
+        panel.add(label);
+        panel.addSpace(5);
+    	panel.add(contentText = new JTextField());
+    	label.setLabelFor(contentText);
+    	contentText.setEnabled(true);
+        return panel; 
+    }    
     
     private Component createOptionCheckBoxes(){
     	JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -175,7 +191,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * Creates the list of found files area.
      * @return a scroll pane containing the list of found files.
      */
-    private JPanel createOutputArea() {
+    private JPanel createOutputList() {
         YBoxPanel panel = new YBoxPanel();
     	
         foundFilesListModel = new DefaultListModel();
@@ -183,6 +199,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
         foundFilesList.setLayoutOrientation(JList.VERTICAL);
         foundFilesList.setVisibleRowCount(-1);
         foundFilesList.setFocusable(true);
+        foundFilesList.setToolTipText(Translator.get("find_file_dialog.ouput_list_tooltip"));
 
         foundFilesList.addMouseListener(new MouseAdapter(){
         	@Override
@@ -259,7 +276,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
         // Initializes the dialog's UI.
         Container contentPane = getContentPane();
         contentPane.add(createInputArea(), BorderLayout.NORTH);
-        contentPane.add(createOutputArea(), BorderLayout.CENTER);
+        contentPane.add(createOutputList(), BorderLayout.CENTER);
         contentPane.add(createButtonsArea(), BorderLayout.SOUTH);
 
         // Sets default items.
@@ -337,7 +354,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 
             // If we're not running a process, start a new one.
             if(currentProcess == null){
-                runSearch(patternText.getText());
+                runSearch(patternText.getText().trim(), contentText.getText().trim());
 
             // If we're running a process, kill it.
             } else {
@@ -373,7 +390,6 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 
         // Make command field active again
         this.patternText.setEnabled(true);
-        patternText.requestFocus();
 
         // Repaint this dialog
         repaint();
@@ -386,7 +402,9 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @return text prepared for use in shell command
      */
     private String prepareShellText(String text){
-    	return text.replace("\"", "").replace("\\", "\\\\");
+    	return text.replace("\"", "");
+    	//on Windows following this makes impossible to escape characters in regexp
+    	//.replace("\\", "\\\\");
     }
     
     /**
@@ -394,13 +412,12 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @param pattern file name pattern
      * @return shell command that prints all files that match search criteria
      */
-    private String prepareShellCommand(String pattern){
-    	pattern = pattern.trim();
+    private String prepareShellCommand(String pattern, String content){
     	switch( OsFamily.getCurrent() ){
     	case WINDOWS:
-    		return prepareWindowsShellCommand(pattern);
+    		return prepareWindowsShellCommand(pattern, content);
     	default:
-    		return prepareBashShellCommand(pattern);
+    		return prepareBashShellCommand(pattern, content);
     	}
     }
     
@@ -427,13 +444,18 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @param pattern file name pattern
      * @return shell command that prints all files that match search criteria
      */
-    private String prepareWindowsShellCommand(String pattern){
+    private String prepareWindowsShellCommand(String pattern, String content){
+    	String cmd;
     	if( isRegexp.isSelected() ){
-    		//PH TODO
-    		throw new RuntimeException("not implemented");
+    		cmd = "dir /b/s | findstr /I /R \"" + prepareShellText(pattern) + "\"";
     	} else {
-    		return "dir /b/s " + prepareShellText(pattern);
+    		cmd = "dir /b/s \"" + prepareShellText(pattern) + "\"";
     	}
+    	if( content != null && content.length() > 0 ){
+    		cmd = cmd + " | findstr /F:/ /M /I /C:\"" + prepareShellText(content) + "\""; 
+    	}
+LOGGER.error("cmd=" + cmd);    	
+    	return cmd;
     }
     
     //PH extract command examples to documentation
@@ -442,7 +464,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * @param pattern file name pattern
      * @return shell command that prints all files that match search criteria
      */
-    private String prepareBashShellCommand(String pattern){
+    private String prepareBashShellCommand(String pattern, String content){
     	StringBuilder cmd = new StringBuilder("find . -");
     	if( isModifiedAgo.isSelected() ){
     		cmd.append("mmin -").append(modifiedAgo.getValue()).append(" -");
@@ -463,7 +485,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
      * Starts search.
      * @param pattern file name pattern to search for.
      */
-    public void runSearch(String pattern) {
+    public void runSearch(String pattern, String content) {
         try {
             // Starts the spinning dial.
             dial.setAnimated(true);
@@ -472,17 +494,16 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
             this.runStopButton.setText(Translator.get("find_file_dialog.stop"));
 
             // Resets the output list.
-LOGGER.info("CLEAR " + Thread.currentThread().toString());
             foundFilesListModel.clear();
             foundFilesLastFragment = null;
-            foundFilesList.requestFocus();
+            foundFilesLastFocusSet = false;
             
 
             // No new pattern can be entered while a process is running.
             patternText.setEnabled(false);
   	      
             //PH FindFileDialog replace ls with something more usefull
-            currentProcess = Shell.execute(prepareShellCommand(pattern), mainFrame.getActivePanel().getCurrentFolder(), this);
+            currentProcess = Shell.execute(prepareShellCommand(pattern, content), mainFrame.getActivePanel().getCurrentFolder(), this);
 
             // Repaints the dialog.
             repaint();
@@ -506,6 +527,15 @@ LOGGER.info("CLEAR " + Thread.currentThread().toString());
     	while((pos = s.indexOf("\n", prev)) != -1 ){
     		foundFilesListModel.addElement(s.substring(prev, pos));
     		prev = pos+1;
+    		
+    		//move focus to list and select first item
+    		if( !foundFilesLastFocusSet ){
+    			foundFilesLastFocusSet = true;
+    			foundFilesList.requestFocus();
+    			if( foundFilesList.getSelectedIndex() == -1 ){
+    				foundFilesList.setSelectedIndex(0);
+    			}
+    		}
     	}
     	if( prev < s.length() ){
     		foundFilesLastFragment = s.substring(prev);
