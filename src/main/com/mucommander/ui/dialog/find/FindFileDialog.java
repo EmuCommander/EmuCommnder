@@ -212,6 +212,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     	if( selectedFile == null ){
     		return;
     	}
+    	selectedFile = selectedFile.trim();
 		if( selectedFile.startsWith(".")){
 			selectedFile = mainFrame.getActivePanel().getCurrentFolder().getAbsolutePath()
 					+ selectedFile.substring(2);
@@ -223,6 +224,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 			selectedAFFolder = selectedAF;
 			selectedAF = null;
 		}
+		
 		mainFrame.getActivePanel().tryChangeCurrentFolder(selectedAFFolder, selectedAF, true);
 		FindFileDialog.this.close();
 
