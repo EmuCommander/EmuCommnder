@@ -86,14 +86,8 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     private JTextField patternText;
     /** Input field for content text. */
     private JTextField contentText;
-    /** Case-insensitive check box. */
-    private JCheckBox isCaseInsensitive;
     /** Regexp check box. */
     private JCheckBox isRegexp;
-    /** Modified ago check box - when selected modifiedAgo will be taken into account. */
-    private JCheckBox isModifiedAgo;
-    /** Modified ago spinner. */
-    private JSpinner modifiedAgo;
     /** Run/stop button. */
     private JButton       runStopButton;
     /** Cancel button. */
@@ -125,68 +119,34 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     private YBoxPanel createInputArea() {
         YBoxPanel panel = new YBoxPanel();
         
-        panel.add(createPatternInput());
-        panel.add(createOptionCheckBoxes());
-        panel.add(createContentInput());
+    	XBoxPanel p = new XBoxPanel();
+        p.add(new JLabel(Translator.get("find_file_dialog.pattern_input")));
+        p.addSpace(5);
+        p.add(isRegexp = new JCheckBox(Translator.get("find_file_dialog.use_regexp"), false));
+        panel.add(p);
         
-        //label and progress spin
-        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        labelPanel.add(new JLabel(Translator.get("find_file_dialog.found_files")));
-        labelPanel.add(new JLabel(dial = new SpinningDial()));
-        panel.add(labelPanel);
-
-        return panel;
-    }
-    
-    private Component createPatternInput(){
-    	XBoxPanel panel = new XBoxPanel();
-    	JLabel label = new JLabel(Translator.get("find_file_dialog.pattern_input"));
-        panel.add(label);
-        panel.addSpace(5);
     	panel.add(patternText = new JTextField());
-    	label.setLabelFor(patternText);
         patternText.setEnabled(true);
         patternText.setToolTipText(
         	Translator.get(
         		WINDOWS.equals(OsFamily.getCurrent())  
 	        	? "find_file_dialog.pattern_input_tooltip_win" 
 	        	: "find_file_dialog.pattern_input_tooltip_linux"));
-        return panel; 
+        
+        panel.add(new JLabel(Translator.get("find_file_dialog.content_input")));
+
+        panel.add(contentText = new JTextField());
+    	contentText.setEnabled(true);                
+        
+    	XBoxPanel p2 = new XBoxPanel();
+        p2.add(new JLabel(Translator.get("find_file_dialog.found_files")));
+        p2.add(new JLabel(dial = new SpinningDial()));
+        panel.add(p2);
+        
+        return panel;
     }
     
-    private Component createContentInput(){
-    	XBoxPanel panel = new XBoxPanel();
-    	JLabel label = new JLabel(Translator.get("find_file_dialog.content_input"));
-        panel.add(label);
-        panel.addSpace(5);
-    	panel.add(contentText = new JTextField());
-    	label.setLabelFor(contentText);
-    	contentText.setEnabled(true);
-        return panel; 
-    }    
-    
-    private Component createOptionCheckBoxes(){
-    	JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-
-		panel.add(isCaseInsensitive = new JCheckBox(Translator.get("find_file_dialog.case_insensitive"), true));
-		
-		panel.add(isRegexp = new JCheckBox(Translator.get("find_file_dialog.use_regexp"), false));
-
-    	panel.add(isModifiedAgo = new JCheckBox(Translator.get("find_file_dialog.modified_ago"), false));
-    	isModifiedAgo.addChangeListener(new ChangeListener() {
-    		@Override
-    		public void stateChanged(ChangeEvent e) {
-    			modifiedAgo.setEnabled(isModifiedAgo.isSelected());
-    		}
-    	});
-    	panel.add(modifiedAgo = new JSpinner( new SpinnerNumberModel(5, 1, Integer.MAX_VALUE, 1) ));
-    	modifiedAgo.setEnabled(false);
-    	modifiedAgo.setPreferredSize(new Dimension(50, 20));
-        panel.add(new JLabel(Translator.get("find_file_dialog.modified_ago_unit")));
-    	
-		return panel;
-	}
-    
+   
     /**
      * Creates the list of found files area.
      * @return a scroll pane containing the list of found files.
@@ -454,7 +414,6 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     	if( content != null && content.length() > 0 ){
     		cmd = cmd + " | findstr /F:/ /M /I /C:\"" + prepareShellText(content) + "\""; 
     	}
-LOGGER.error("cmd=" + cmd);    	
     	return cmd;
     }
     
@@ -465,13 +424,7 @@ LOGGER.error("cmd=" + cmd);
      * @return shell command that prints all files that match search criteria
      */
     private String prepareBashShellCommand(String pattern, String content){
-    	StringBuilder cmd = new StringBuilder("find . -");
-    	if( isModifiedAgo.isSelected() ){
-    		cmd.append("mmin -").append(modifiedAgo.getValue()).append(" -");
-    	}
-    	if( isCaseInsensitive.isSelected() ){
-    		cmd.append("i");
-    	}
+    	StringBuilder cmd = new StringBuilder("find . -i -");
     	if( isRegexp.isSelected() ){
     		cmd.append("regex ");
     	} else {
