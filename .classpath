@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src/main"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/bzip2.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/commons-codec.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/commons-collections.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/commons-httpclient.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/commons-logging.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/commons-net.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/apache/hadoop-core.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/edmund-wagner/junrar.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/ibm/icu4j-charset-detect.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/jcifs/jcifs.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/jets3t/jets3t.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/jmdns/jmdns.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/jna/jna.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/logback/logback-classic.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/logback/logback-core.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/mucommander/com.mucommander.commons.collections.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/mucommander/com.mucommander.commons.conf.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/mucommander/com.mucommander.commons.file.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/mucommander/com.mucommander.commons.io.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/mucommander/com.mucommander.commons.runtime.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/mucommander/com.mucommander.commons.util.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/slf4j/jcl-over-slf4j.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/slf4j/jul-to-slf4j.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/slf4j/log4j-over-slf4j.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/slf4j/slf4j-api.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/sshtools/j2ssh.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/sun/yanfs.jar"/>
+	<classpathentry kind="lib" path="lib/runtime/vmware/vim25.jar"/>
+	<classpathentry kind="lib" path="lib/compile/apple/AppleJavaExtensions.jar"/>
+	<classpathentry kind="output" path="tmp/main"/>
+</classpath>
