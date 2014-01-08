@@ -3,6 +3,7 @@ reports/
 res/
 tmp/
 *.class
-
+out/
 /bin
 /.settings
+EmuCommnder.iml

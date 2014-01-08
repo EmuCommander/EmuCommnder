@@ -420,17 +420,26 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
     //PH extract command examples to documentation
     /**
      * Creates Bash shell command that prints all files that match search criteria.
+     *
+     * Exmaple commands:
+     * find . -iname "[pattern]" -exec grep -l "[content]" {} \;
+     * find . -iregexp "[pattern]" -exec grep -l "[content]" {} \;
+     *
      * @param pattern file name pattern
      * @return shell command that prints all files that match search criteria
      */
     private String prepareBashShellCommand(String pattern, String content){
-    	StringBuilder cmd = new StringBuilder("find . -i -");
+    	StringBuilder cmd = new StringBuilder("find . -i");
     	if( isRegexp.isSelected() ){
     		cmd.append("regex ");
     	} else {
     		cmd.append("name ");
     	}
     	cmd.append("\"").append(prepareShellText(pattern)).append("\"");
+
+        if( content.length() > 0 ){
+            cmd.append(" -exec grep -l \"").append(prepareShellText(content)).append("\" {} \\;");
+        }
     	return cmd.toString();
     }
 
@@ -454,8 +463,7 @@ public class FindFileDialog extends FocusDialog implements ActionListener, Proce
 
             // No new pattern can be entered while a process is running.
             patternText.setEnabled(false);
-  	      
-            //PH FindFileDialog replace ls with something more usefull
+
             currentProcess = Shell.execute(prepareShellCommand(pattern, content), mainFrame.getActivePanel().getCurrentFolder(), this);
 
             // Repaints the dialog.
