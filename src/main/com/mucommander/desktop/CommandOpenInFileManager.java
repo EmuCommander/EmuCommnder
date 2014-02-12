@@ -39,7 +39,7 @@ class CommandOpenInFileManager extends LocalFileOperation {
         if((command = CommandManager.getCommandForAlias(CommandManager.FILE_MANAGER_ALIAS)) == null)
             throw new UnsupportedOperationException();
 
-        ProcessRunner.execute(command.getTokens(file), file);
+        ProcessRunner.execute(command.getTokens(file, null), file);
     }
 
     @Override

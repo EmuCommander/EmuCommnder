@@ -30,20 +30,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.mucommander.PlatformManager;
 import com.mucommander.commons.file.AbstractFile;
 import com.mucommander.commons.file.FileFactory;
 import com.mucommander.commons.file.PermissionTypes;
 import com.mucommander.commons.file.filter.AttributeFileFilter;
-import com.mucommander.commons.file.filter.AttributeFileFilter.FileAttribute;
 import com.mucommander.commons.file.filter.ChainedFileFilter;
 import com.mucommander.commons.file.filter.FileFilter;
 import com.mucommander.commons.file.filter.RegexpFilenameFilter;
 import com.mucommander.io.backup.BackupInputStream;
 import com.mucommander.io.backup.BackupOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manages custom commands and associations.
@@ -133,12 +131,12 @@ public class CommandManager implements CommandBuilder {
      * Returns the tokens that compose the command that must be executed to open the specified file.
      * <p>
      * This is a convenience method and is strictly equivalent to calling
-     * <code>{@link #getTokensForFile(AbstractFile,boolean) getTokensForFile(}file, true)</code>.
+     * <code>{@link #getTokensForFile(AbstractFile, AbstractFile,boolean) getTokensForFile(}file, true)</code>.
      * </p>
      * @param file file for which the opening command's tokens must be returned.
      * @return the tokens that compose the command that must be executed to open the specified file.
      */
-    public static String[] getTokensForFile(AbstractFile file) {return getTokensForFile(file, true);}
+    public static String[] getTokensForFile(AbstractFile file, AbstractFile fileInactive) {return getTokensForFile(file, fileInactive, true);}
 
     /**
      * Returns the tokens that compose the command that must be executed to open the specified file.
@@ -146,12 +144,12 @@ public class CommandManager implements CommandBuilder {
      * @param  allowDefault whether to use the default command if none was found to match the specified file.
      * @return              the tokens that compose the command that must be executed to open the specified file, <code>null</code> if not found.
      */
-    public static String[] getTokensForFile(AbstractFile file, boolean allowDefault) {
+    public static String[] getTokensForFile(AbstractFile file, AbstractFile fileInactive, boolean allowDefault) {
         Command command;
 
         if((command = getCommandForFile(file, allowDefault)) == null)
             return null;
-        return command.getTokens(file);
+        return command.getTokens(file, fileInactive);
     }
 
     /**

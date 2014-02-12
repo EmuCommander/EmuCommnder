@@ -18,12 +18,12 @@
 
 package com.mucommander.desktop;
 
+import java.io.IOException;
+
 import com.mucommander.command.Command;
 import com.mucommander.command.CommandManager;
 import com.mucommander.commons.file.AbstractFile;
 import com.mucommander.process.ProcessRunner;
-
-import java.io.IOException;
 
 /**
  * @author Nicolas Rinaudo
@@ -68,7 +68,7 @@ class CommandOpen extends LocalFileOperation {
             throw new UnsupportedOperationException();
 
         // If found, executes it.
-        ProcessRunner.execute(command.getTokens(file), file);
+        ProcessRunner.execute(command.getTokens(file, null), file);
     }
 
     /**

@@ -90,6 +90,18 @@ public class Command implements Comparable<Command> {
     /** Instances of this keyword will be replaced by the file's name without its extension. */
     private static final char KEYWORD_NAME_WITHOUT_EXTENSION      = 'b';
 
+    //Inactive tab
+    /** Instances of this keyword will be replaced by the file's full path. */
+    private static final char KEYWORD_PATH_I                       = 'F';
+    /** Instances of this keyword will be replaced by the file's name. */
+    private static final char KEYWORD_NAME_I                        = 'N';
+    /** Instances of this keyword will be replaced by the file's parent directory. */
+    private static final char KEYWORD_PARENT_I                      = 'P';
+    /** Instances of this keyword will be replaced by the file's extension. */
+    private static final char KEYWORD_EXTENSION_I                   = 'E';
+    /** Instances of this keyword will be replaced by the file's name without its extension. */
+    private static final char KEYWORD_NAME_WITHOUT_EXTENSION_I      = 'B';
+
 
 
     // - Instance variables --------------------------------------------------------------------------------------------
@@ -157,34 +169,37 @@ public class Command implements Comparable<Command> {
      * @return this command's tokens without performing keyword substitution.
      */
     public synchronized String[] getTokens() {
-    	return getTokens(command, (AbstractFile[])null);
+    	return getTokens(command, (AbstractFile[])null, (AbstractFile[])null);
     }
 
     /**
      * Returns this command's tokens, replacing keywords by the corresponding values from the specified file.
      * @param  file file from which to retrieve keyword substitution values.
+     * @param  fileInactive file from which to retrieve keyword substitution values inactive table
      * @return      this command's tokens, replacing keywords by the corresponding values from the specified file.
      */
-    public synchronized String[] getTokens(AbstractFile file) {
-    	return getTokens(command, file);
+    public synchronized String[] getTokens(AbstractFile file, AbstractFile fileInactive) {
+    	return getTokens(command, file, fileInactive);
     }
 
     /**
      * Returns this command's tokens, replacing keywords by the corresponding values from the specified fileset.
      * @param  files files from which to retrieve keyword substitution values.
+     * @param  filesInactive files from which to retrieve keyword substitution values - inactive table.
      * @return       this command's tokens, replacing keywords by the corresponding values from the specified fileset.
      */
-    public synchronized String[] getTokens(FileSet files) {
-    	return getTokens(command, files);
+    public synchronized String[] getTokens(FileSet files, FileSet filesInactive) {
+    	return getTokens(command, files, filesInactive);
     }
 
     /**
      * Returns this command's tokens, replacing keywords by the corresponding values from the specified files.
      * @param  files files from which to retrieve keyword substitution values.
+     * @param  filesInactive files from which to retrieve keyword substitution values - inactive table.
      * @return       this command's tokens, replacing keywords by the corresponding values from the specified files.
      */
-    public synchronized String[] getTokens(AbstractFile[] files) {
-    	return getTokens(command, files);
+    public synchronized String[] getTokens(AbstractFile[] files, AbstractFile[] filesInactive) {
+    	return getTokens(command, files, filesInactive);
     }
 
     /**
@@ -193,36 +208,39 @@ public class Command implements Comparable<Command> {
      * @return         the specified command's tokens without performing keyword substitution.
      */
     public static String[] getTokens(String command) {
-    	return getTokens(command, (AbstractFile[])null);
+    	return getTokens(command, (AbstractFile[])null, (AbstractFile[])null);
     }
 
     /**
      * Returns the specified command's tokens after replacing keywords by the corresponding values from the specified file.
      * @param  command command to tokenize.
      * @param  file    file from which to retrieve keyword substitution values.
+     * @param  fileInactive   file from which to retrieve keyword substitution values - inactive table
      * @return         the specified command's tokens after replacing keywords by the corresponding values from the specified file.
      */
-    public static String[] getTokens(String command, AbstractFile file) {
-    	return getTokens(command, new AbstractFile[] {file});
+    public static String[] getTokens(String command, AbstractFile file, AbstractFile fileInactive) {
+    	return getTokens(command, new AbstractFile[] {file}, new AbstractFile[] {fileInactive});
     }
 
     /**
      * Returns the specified command's tokens after replacing keywords by the corresponding values from the specified fileset.
      * @param  command command to tokenize.
      * @param  files   file from which to retrieve keyword substitution values.
+     * @param  filesInactive   file from which to retrieve keyword substitution values - inactive table
      * @return         the specified command's tokens after replacing keywords by the corresponding values from the specified fileset.
      */
-    public static String[] getTokens(String command, FileSet files) {
-    	return getTokens(command, files.toArray(new AbstractFile[files.size()]));
+    public static String[] getTokens(String command, FileSet files, FileSet filesInactive) {
+    	return getTokens(command, files.toArray(new AbstractFile[files.size()]), filesInactive.toArray(new AbstractFile[filesInactive.size()]));
     }
 
     /**
      * Returns the specified command's tokens after replacing keywords by the corresponding values from the specified files.
      * @param  command command to tokenize.
      * @param  files   file from which to retrieve keyword substitution values.
+     * @param  filesInactive   file from which to retrieve keyword substitution values inactive table
      * @return         the specified command's tokens after replacing keywords by the corresponding values from the specified files.
      */
-    public static String[] getTokens(String command, AbstractFile[] files) {
+    public static String[] getTokens(String command, AbstractFile[] files, AbstractFile[] filesInactive) {
         List<String>  tokens;        // All tokens.
         char[]        buffer;        // All the characters that compose command.
         StringBuilder currentToken;  // Buffer for the current token.
@@ -264,14 +282,23 @@ public class Command implements Comparable<Command> {
             else if(buffer[i] == KEYWORD_HEADER) {
                 // Skips keyword replacement if we're not interested
                 // in it.
-                if(files == null)
+                if(i+1 < buffer.length
+                    && (
+                        (files == null && isLegalKeyword(buffer[i+1]))
+                        || (filesInactive == null && isLegalKeywordInactive(buffer[i+1]))
+                    )
+                ){
                     currentToken.append(KEYWORD_HEADER);
 
                 // If this is the last character, append it.
-                else if(++i == buffer.length)
+                } else if(++i == buffer.length) {
                     currentToken.append(KEYWORD_HEADER);
 
                 // If we've found a legal keyword, perform keyword replacement
+                } else if(isLegalKeywordInactive(buffer[i])) {
+                    // Always deals with the first file from inactive tab only.
+                    currentToken.append(getKeywordReplacementInactive(buffer[i], filesInactive[0]));
+                }
                 else if(isLegalKeyword(buffer[i])) {
                     // Deals with the first file.
                     currentToken.append(getKeywordReplacement(buffer[i], files[0]));
@@ -337,6 +364,11 @@ public class Command implements Comparable<Command> {
             keyword == KEYWORD_VM_PATH || keyword == KEYWORD_EXTENSION || keyword == KEYWORD_NAME_WITHOUT_EXTENSION;
     }
 
+    private static boolean isLegalKeywordInactive(char keyword) {
+        return keyword == KEYWORD_PATH_I || keyword == KEYWORD_NAME_I || keyword == KEYWORD_PARENT_I ||
+                keyword == KEYWORD_EXTENSION_I || keyword == KEYWORD_NAME_WITHOUT_EXTENSION_I;
+    }
+
     /**
      * Gets the value from <code>file</code> that should be used to replace <code>keyword</code>.
      * @param  keyword character to replace.
@@ -371,6 +403,29 @@ public class Command implements Comparable<Command> {
         throw new IllegalArgumentException();
     }
 
+    private static String getKeywordReplacementInactive(char keyword, AbstractFile fileInactive) {
+        switch(keyword) {
+            case KEYWORD_PATH_I:
+                return fileInactive.getAbsolutePath();
+
+            case KEYWORD_NAME_I:
+                return fileInactive.getName();
+
+            case KEYWORD_PARENT_I:
+                AbstractFile parentFile = fileInactive.getParent();
+                return parentFile==null?"":parentFile.getAbsolutePath();
+
+            case KEYWORD_EXTENSION_I:
+                String extension;
+                if((extension = fileInactive.getExtension()) == null)
+                    return "";
+                return extension;
+
+            case KEYWORD_NAME_WITHOUT_EXTENSION_I:
+                return fileInactive.getNameWithoutExtension();
+        }
+        throw new IllegalArgumentException();
+    }
 
 
     // - Misc. ---------------------------------------------------------------------------------------------------------

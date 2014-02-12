@@ -119,7 +119,7 @@ public class TempOpenWithJob extends TempCopyJob {
         super.jobCompleted();
 
         try {
-            ProcessRunner.execute(command.getTokens(tempFiles), baseDestFolder);
+            ProcessRunner.execute(command.getTokens(tempFiles, null), baseDestFolder);
         }
         catch(Exception e) {
             LOGGER.debug("Caught exception executing "+command+" "+tempFiles, e);

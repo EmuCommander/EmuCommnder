@@ -18,14 +18,14 @@
 
 package com.mucommander.desktop;
 
+import java.io.IOException;
+import java.net.URL;
+
 import com.mucommander.command.Command;
 import com.mucommander.command.CommandManager;
 import com.mucommander.commons.file.AbstractFile;
 import com.mucommander.commons.file.FileFactory;
 import com.mucommander.process.ProcessRunner;
-
-import java.io.IOException;
-import java.net.URL;
 
 /**
  * @author Nicolas Rinaudo
@@ -45,7 +45,7 @@ class CommandBrowse extends UrlOperation {
             throw new UnsupportedOperationException();
 
         target = FileFactory.getFile(url.toString());
-        ProcessRunner.execute(command.getTokens(target), target);
+        ProcessRunner.execute(command.getTokens(target, null), target);
     }
 
     /**

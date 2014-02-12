@@ -18,12 +18,8 @@
 
 package com.mucommander.ui.action.impl;
 
+import javax.swing.*;
 import java.util.Map;
-
-import javax.swing.KeyStroke;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mucommander.command.Command;
 import com.mucommander.commons.file.FileProtocols;
@@ -41,6 +37,8 @@ import com.mucommander.ui.action.MuAction;
 import com.mucommander.ui.dialog.InformationDialog;
 import com.mucommander.ui.dialog.file.ProgressDialog;
 import com.mucommander.ui.main.MainFrame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Nicolas Rinaudo
@@ -75,18 +73,19 @@ public class CommandAction extends MuAction {
     // -------------------------------------------------------------------------
     @Override
     public void performAction() {
-        FileSet selectedFiles;
+        FileSet selectedFilesActive,selectedFilesInactive ;
 
         // Retrieves the current selection.
-        selectedFiles = mainFrame.getActiveTable().getSelectedFiles();
+        selectedFilesActive = mainFrame.getActiveTable().getSelectedFiles();
+        selectedFilesInactive = mainFrame.getInactiveTable().getSelectedFiles();
 
         // If no files are either selected or marked, aborts.
-        if(selectedFiles.size() == 0)
+        if(selectedFilesActive.size() == 0)
             return;
 
         // If we're working with local files, go ahead and runs the command.
-        if(selectedFiles.getBaseFolder().getURL().getScheme().equals(FileProtocols.FILE) && (selectedFiles.getBaseFolder().hasAncestor(LocalFile.class))) {
-            try {ProcessRunner.execute(command.getTokens(selectedFiles), selectedFiles.getBaseFolder());}
+        if(selectedFilesActive.getBaseFolder().getURL().getScheme().equals(FileProtocols.FILE) && (selectedFilesActive.getBaseFolder().hasAncestor(LocalFile.class))) {
+            try {ProcessRunner.execute(command.getTokens(selectedFilesActive, selectedFilesInactive), selectedFilesActive.getBaseFolder());}
             catch(Exception e) {
                 InformationDialog.showErrorDialog(mainFrame);
 
@@ -96,7 +95,7 @@ public class CommandAction extends MuAction {
         // Otherwise, copies the files locally before running the command.
         else {
             ProgressDialog progressDialog = new ProgressDialog(mainFrame, Translator.get("copy_dialog.copying"));
-            progressDialog.start(new TempOpenWithJob(new ProgressDialog(mainFrame, Translator.get("copy_dialog.copying")), mainFrame, selectedFiles, command));
+            progressDialog.start(new TempOpenWithJob(new ProgressDialog(mainFrame, Translator.get("copy_dialog.copying")), mainFrame, selectedFilesActive, command));
         }
     }
 
